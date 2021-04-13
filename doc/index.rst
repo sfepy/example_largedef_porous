@@ -83,7 +83,7 @@ post-processing script as follows:
 
 .. code::
 
-   ./resview.py example_largedef_porous/results/macro_mesh_3x2_*.vtk -w u0 -f cauchy_stress:p0 -v "0,0" -s 18
+   ./resview.py example_largedef_porous-1/results/macro_mesh_3x2_*.vtk -w u0 -f cauchy_stress:p0 -v "0,0" -s 18
 
 .. figure:: _static/results1.png
    :width: 700px
