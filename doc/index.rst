@@ -16,7 +16,7 @@ applied to a linearized model discretized in time, being associated with an
 incremental formulation. The homogenization procedure of the linearized
 equations provides effective (homogenized) material properties which are
 computed to constitute the incremental macroscopic problem. The multiscale
-model is derived and discussed in [LukesRohan2020]_.
+model is derived and discussed in [LukesRohan2022]_.
 
 
 Implementation
@@ -76,7 +76,7 @@ This invokes the time-stepping solver for the problem at the macroscopic level
 which calls the homogenization engine evaluating the homogenized coefficients
 defined in :code:`largedef_porous_mic.py`. The coefficients are evaluated in
 several embedded loops associated with the time steps and the macroscopic
-integration points, see [LukesRohan2020]_ for details.
+integration points, see [LukesRohan2022]_ for details.
 
 The computed macroscopic results can be visualized using the :code:`resview.py`
 post-processing script as follows:
@@ -97,9 +97,10 @@ post-processing script as follows:
 References
 ----------
 
-.. [LukesRohan2020] Lukeš V. Rohan E.
-   Homogenization of large deforming fluid-saturated porous structures
-   `arXiv:2012.03730 <https://arxiv.org/abs/2012.03730>`_
+.. [LukesRohan2022] Lukeš V., Rohan E.
+   Homogenization of large deforming fluid-saturated porous structures.
+   Computers and Mathematics with Applications, 110:40-63, 2022,
+   `DOI:10.1016/j.camwa.2022.01.036 <https://doi.org/10.1016/j.camwa.2022.01.036>`_
 
 .. [CimrmanLukesRohan2019] Cimrman R., Lukeš V., Rohan E.
    Multiscale finite element calculations in Python using SfePy.

@@ -106,7 +106,7 @@ html_context = {
     'menu_links_name': 'Connections',
     'menu_links': [
         ('<i class="fa fa-github fa-fw"></i> Source Code', 'https://github.com/sfepy/example_largedef_porous'),
-        ('<i class="fa fa-file-text fa-fw"></i> The Paper', 'https://arxiv.org/abs/2012.03730'),
+        ('<i class="fa fa-file-text fa-fw"></i> The Paper', 'https://doi.org/10.1016/j.camwa.2022.01.036'),
         ('<i class="fa fa-external-link fa-fw"></i> SfePy', 'https://sfepy.org'),
     ],
 }

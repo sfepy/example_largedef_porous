@@ -4,6 +4,6 @@ Two-scale numerical simulation of a large deforming fluid-saturated porous struc
 
 * [Example Page](https://sfepy.org/sfepy_examples/example_largedef_porous/)
 
-* [The Paper](https://arxiv.org/abs/2012.03730)
+* [The Paper](https://doi.org/10.1016/j.camwa.2022.01.036)
 
 * [SfePy](https://sfepy.org)
