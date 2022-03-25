@@ -25,7 +25,6 @@ from sfepy.terms.terms_hyperelastic_ul import HyperElasticULFamilyData
 from sfepy.homogenization.micmac import get_homog_coefs_nonlinear
 import sfepy.linalg as la
 from sfepy.solvers.ts import TimeStepper
-from sfepy.discrete.state import State
 
 wdir = osp.dirname(__file__)
 
@@ -38,27 +37,28 @@ hyperelastic_data = {
     'macro_data': None,
 }
 
+
 def post_process(out, pb, state, extend=False):
     ts = hyperelastic_data['ts']
 
     if isinstance(state, dict):
         pass
     else:
-        stress = pb.evaluate('ev_volume_integrate_mat.i.Omega(solid.S, u)',
+        stress = pb.evaluate('ev_integrate_mat.i.Omega(solid.S, u)',
                              mode='el_avg')
 
         out['cauchy_stress'] = Struct(name='output_data',
                                       mode='cell',
                                       data=stress)
 
-        ret_stress = pb.evaluate('ev_volume_integrate_mat.i.Omega(solid.Q, u)',
+        ret_stress = pb.evaluate('ev_integrate_mat.i.Omega(solid.Q, u)',
                                  mode='el_avg')
 
         out['retardation_stress'] = Struct(name='output_data',
                                            mode='cell',
                                            data=ret_stress)
 
-        strain = pb.evaluate('ev_volume_integrate_mat.i.Omega(solid.E, u)',
+        strain = pb.evaluate('ev_integrate_mat.i.Omega(solid.E, u)',
                              mode='el_avg')
 
         out['green_strain'] = Struct(name='output_data',
@@ -88,7 +88,7 @@ def post_process(out, pb, state, extend=False):
 def homog_macro_map(ccoors, macro, nel):
     nqpe = ccoors.shape[0] // nel
     macro_ = {k: nm.sum(v.reshape((nel, nqpe) + v.shape[1:]), axis=1) / nqpe
-        for k, v in macro.items()}
+              for k, v in macro.items()}
     macro_['recovery_idxs'] = []
     ccoors_ = nm.sum(ccoors.reshape((nel, nqpe) + ccoors.shape[1:]), axis=1) / nqpe
 
@@ -98,9 +98,9 @@ def homog_macro_map(ccoors, macro, nel):
 def homog_macro_remap(homcf, ncoor):
     nqpe = ncoor // homcf['Volume_total'].shape[0]
     homcf_ = {k: nm.repeat(v, nqpe, axis=0) for k, v in homcf.items()
-        if not k == 'Volume_total'}
+              if not k == 'Volume_total'}
 
-    return homcf_  
+    return homcf_
 
 
 def get_homog_mat(ts, coors, mode, term=None, problem=None, **kwargs):
@@ -108,7 +108,7 @@ def get_homog_mat(ts, coors, mode, term=None, problem=None, **kwargs):
     ts = hyperela['ts']
 
     output('get_homog_mat: mode=%s, update=%s'\
-        % (mode, hyperela['update_materials']))
+           % (mode, hyperela['update_materials']))
 
     if not mode == 'qp':
         return
@@ -120,14 +120,15 @@ def get_homog_mat(ts, coors, mode, term=None, problem=None, **kwargs):
     dim = problem.domain.mesh.dim
     nqp = coors.shape[0]
 
-    state_u = problem.equations.variables['u']
+    svars = problem.equations.variables
+    state_u = svars['u']
     if len(state_u.field.mappings0) == 0:
         state_u.field.get_mapping(term.region, term.integral,
                                   term.integration)
         state_u.field.save_mappings()
 
     state_u.field.clear_mappings()
-    state_u.set_data(hyperela['state']['u'].ravel()) # + state_u.data[-1][state_u.indx]
+    svars.set_state_parts({'u': hyperela['state']['u'].ravel()})
 
     mtx_f = problem.evaluate('ev_def_grad.i.Omega(u)',
                              mode='qp').reshape(-1, dim, dim)
@@ -147,18 +148,17 @@ def get_homog_mat(ts, coors, mode, term=None, problem=None, **kwargs):
 
     for ch in problem.conf.chs:
         plab = 'p%d' % ch
-        state_p = problem.equations.variables[plab]
-        state_p.set_data(hyperela['state'][plab])
+        svars.set_state_parts({plab: hyperela['state'][plab]})
         macro_data['p%d_0' % ch] = \
-            problem.evaluate('ev_volume_integrate.i.Omega(p%d)' % ch,
+            problem.evaluate('ev_integrate.i.Omega(p%d)' % ch,
                              mode='qp').reshape(-1, 1, 1)
         macro_data['gp%d_0' % ch] = \
             problem.evaluate('ev_grad.i.Omega(p%d)' % ch,
                              mode='qp').reshape(-1, dim, 1)
 
-        state_p.set_data(hyperela['state']['d' + plab])
+        svars.set_state_parts({plab: hyperela['state']['d' + plab]})
         macro_data['dp%d_0' % ch] = \
-            problem.evaluate('ev_volume_integrate.i.Omega(p%d)' % ch,
+            problem.evaluate('ev_integrate.i.Omega(p%d)' % ch,
                              mode='qp').reshape(-1, 1, 1)
         macro_data['gdp%d_0' % ch] = \
             problem.evaluate('ev_grad.i.Omega(p%d)' % ch,
@@ -203,7 +203,7 @@ def incremental_algorithm(pb):
     he_state = hyperela['state']
 
     out = []
-    out_data ={}
+    out_data = {}
 
     coors0 = pbvars['u'].field.get_coor()
 
@@ -224,9 +224,9 @@ def incremental_algorithm(pb):
         pb.ofn_trunk = hyperela['ofn_trunk'] % step
 
         yield pb, out
-        
+
         state = out[-1][1]
-        result = state.get_parts()
+        result = state.get_state_parts()
         du = result['u']
 
         he_state['u'] += du.reshape(he_state['du'].shape)
@@ -285,6 +285,7 @@ def define():
         'q1': ('test field', 'pressure', 'p1'),
         'p2': ('unknown field', 'pressure', 2),
         'q2': ('test field', 'pressure', 'p2'),
+        'U': ('parameter field', 'displacement', 'u'),
     }
 
     filename_mesh = osp.join(wdir, 'macro_mesh_3x2.vtk')
@@ -311,7 +312,8 @@ def define():
     functions = {
         'move': (move,),
         'get_homog': (lambda ts, coors, mode, **kwargs:
-            get_homog_mat(ts, coors, mode, define_args=micro_args, **kwargs),),
+                      get_homog_mat(ts, coors, mode,
+                                    define_args=micro_args, **kwargs),),
     }
 
     integrals = {
@@ -330,18 +332,18 @@ def define():
         #  eq. (61), alpha = 1
         'mass_conservation_1': """
      - %e * dw_biot.i.Omega(solid.B1, u, q1)
-          - dw_volume_dot.i.Omega(solid.G11, q1, p1)  
-          - dw_volume_dot.i.Omega(solid.G12, q1, p2)
-          - dw_diffusion.i.Omega(solid.C1, q1, p1) 
+          - dw_dot.i.Omega(solid.G11, q1, p1)
+          - dw_dot.i.Omega(solid.G12, q1, p2)
+          - dw_diffusion.i.Omega(solid.C1, q1, p1)
           =
-            dw_volume_lvf.i.Omega(solid.Z1, q1) 
+            dw_volume_lvf.i.Omega(solid.Z1, q1)
         """ % (1 / ts.dt),
         #  eq. (61), alpha = 2
         'mass_conservation_2': """
      - %e * dw_biot.i.Omega(solid.B2, u, q2)
-          - dw_volume_dot.i.Omega(solid.G21, q2, p1)  
-          - dw_volume_dot.i.Omega(solid.G22, q2, p2)
-          - dw_diffusion.i.Omega(solid.C2, q2, p2) 
+          - dw_dot.i.Omega(solid.G21, q2, p1)
+          - dw_dot.i.Omega(solid.G22, q2, p2)
+          - dw_diffusion.i.Omega(solid.C2, q2, p2)
           =
             dw_volume_lvf.i.Omega(solid.Z2, q2)
         """ % (1. / ts.dt),

@@ -83,7 +83,7 @@ class CorrStatePressureCh(cb.CorrMiniApp):
         else:
             ndof = problem.fields['pressure' + pvar[-1]].n_vertex_dof
             press = nm.zeros((ndof,), dtype=nm.float64)
-        
+
         corr_sol = cb.CorrSolution(name=self.name,
                                    state={pvar: press})
 
@@ -101,7 +101,7 @@ class CorrStatePressureM(cb.CorrMiniApp):
         else:
             ndof = problem.fields['pressure'].n_vertex_dof
             press = nm.zeros((ndof,), dtype=nm.float64)
-        
+
         corr_sol = cb.CorrSolution(name=self.name,
                                    state={'p': press})
 
@@ -124,8 +124,8 @@ def post_process_hook(pb, nd_data, qp_data, ccoor, vol, im, tstep, eps0,
     output_dir = pb.conf.options.get('output_dir', '.')
     suffix = '%03d.%03d' % (im, tstep)
     coors = pb.get_mesh_coors(actual=True)
-    coors = (coors - 0.5*(nm.max(coors, axis=0)\
-        - nm.min(coors, axis=0))) * eps0 + ccoor
+    coors = (coors - 0.5*(nm.max(coors, axis=0)
+             - nm.min(coors, axis=0))) * eps0 + ccoor
 
     # Y
     out = {}
@@ -146,7 +146,7 @@ def post_process_hook(pb, nd_data, qp_data, ccoor, vol, im, tstep, eps0,
 
     p_tab = {'Ym': 'p', 'Yc1': 'p1', 'Yc2': 'p2'}
     mesh0 = pb.domain.mesh
-    for rname in ['Ym'] + ['Yc%d' %ch for ch in pb.conf.chs]:
+    for rname in ['Ym'] + ['Yc%d' % ch for ch in pb.conf.chs]:
         reg = pb.domain.regions[rname]
         cells = reg.get_cells()
 
@@ -218,9 +218,9 @@ def get_hyperelastic_Y(pb, term, micro_state, im, region_name='Y'):
     # relative displacement
     state_u.set_data(micro_state['coors'][im] - micro_state['coors_prev'][im]) # \bar u (du_prev)
     grad_du_qp = state_u.evaluate(mode='grad',
-        integral=term.integral).reshape((npts, dim, dim))
+                                  integral=term.integral).reshape((npts, dim, dim))
     div_du_qp = nm.trace(grad_du_qp, axis1=1, axis2=2).reshape((npts, 1, 1))
-   
+
     press_qp = nm.zeros((n_el, n_qp, 1, 1), dtype=nm.float64)
     grad_press_qp = nm.zeros((n_el, n_qp, dim, 1), dtype=nm.float64)
 
@@ -260,7 +260,7 @@ def get_hyperelastic_Y(pb, term, micro_state, im, region_name='Y'):
             mat_fun = ConstantFunctionByRegion({mat_key: solid_mat[mat_key]})
             mat0 = mat_fun.function(ts=None, coors=nm.empty(npts), mode='qp',
                                     term=termY, problem=pb)[mat_key]
-            mat[mat_key] = mat0.reshape((n_el, n_qp) +  mat0.shape[-2:])
+            mat[mat_key] = mat0.reshape((n_el, n_qp) + mat0.shape[-2:])
         else:
             mat[mat_key] = nm.ones((n_el, n_qp, 1, 1)) * solid_mat[mat_key]
 
@@ -268,7 +268,6 @@ def get_hyperelastic_Y(pb, term, micro_state, im, region_name='Y'):
     assert(npts == nm.prod(shape))
     sym = family_data.green_strain.shape[-2]
     dim2 = dim**2
-
 
     fargs = [family_data.get(name)
              for name in NeoHookeanULTerm.family_data_names]
@@ -289,10 +288,10 @@ def get_hyperelastic_Y(pb, term, micro_state, im, region_name='Y'):
 
     mat_A = (tanmod_eff_ns + stress_eff_ns).reshape((npts, dim2, dim2))\
         + J * press_qp * nonsym_delta[dim]
-   
+
     mtxI = nm.eye(dim)
     mat_BI = (mtxI * div_du_qp - grad_du_qp).transpose(0, 2, 1) + mtxI
-    
+
     mat['K'] = mat['K'].reshape((npts, dim, dim))
     mat_H = div_du_qp * mat['K']\
         - la.dot_sequences(mat['K'], grad_du_qp, 'ABT')\
@@ -340,11 +339,11 @@ def def_mat(ts, coors, mode=None, term=None, problem=None, **kwargs):
             del(material_cache[k])
 
         if 'recovery_idxs' in macro_data and\
-            mac_id in macro_data['recovery_idxs'] and\
-            macro_data['macro_time_step'] > 0:
+                mac_id in macro_data['recovery_idxs'] and\
+                macro_data['macro_time_step'] > 0:
 
-            output('>>> recovery: %d / %d / %d'\
-                % (im, macro_data['macro_time_step'], mac_id))
+            output('>>> recovery: %d / %d / %d'
+                   % (im, macro_data['macro_time_step'], mac_id))
 
             qp_data = {}
             for k in ['S', 'E', 'w']:
@@ -361,8 +360,8 @@ def def_mat(ts, coors, mode=None, term=None, problem=None, **kwargs):
                                                     term.integration,
                                                     get_saved=True)[0].det
             post_process_hook(pb, nodal_data, qp_data,
-                            macro_data['macro_ccoor'][im], state_u_det,
-                            im, macro_data['macro_time_step'], pb.conf.eps0)
+                              macro_data['macro_ccoor'][im], state_u_det,
+                              im, macro_data['macro_time_step'], pb.conf.eps0)
     else:
         out = material_cache[cache_key]
 
@@ -397,7 +396,7 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
     options = {
         'coefs': 'coefs',
         'requirements': 'requirements',
-        'volume': {'expression': 'd_volume.5.Y(u)'},
+        'volume': {'expression': 'ev_volume.5.Y(u)'},
         'output_dir': osp.join(wdir, 'results'),
         'coefs_filename': 'coefs_hp',
         # 'chunks_per_worker': 2,
@@ -406,15 +405,15 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
         'micro_update': {
             'coors_prev': None,
             'coors': [('corrs_rs', 'u', 'mtx_e_rel'),
-                    ('corrs_p', 'u', None)] + update_u_by_p,
+                      ('corrs_p', 'u', None)] + update_u_by_p,
             'p': [('corrs_rs', 'p', 'mtx_e_rel'),
-                ('corrs_p', 'p', None)] + update_p_by_p,
+                  ('corrs_p', 'p', None)] + update_p_by_p,
             'p1': [('corrs_eta1', 'p1', 'gdp1_0', eps0),
-                ('corrs_p1', 'p1', None, eps0),
-                (None, None, 'dp1_0')],
+                   ('corrs_p1', 'p1', None, eps0),
+                   (None, None, 'dp1_0')],
             'p2': [('corrs_eta2', 'p2', 'gdp2_0', eps0),
-                ('corrs_p2', 'p2', None, eps0),
-                (None, None, 'dp2_0')],
+                   ('corrs_p2', 'p2', None, eps0),
+                   (None, None, 'dp2_0')],
         },
         'mesh_update_variable': 'u',
         'file_format': 'vtk',
@@ -491,7 +490,7 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
     if nch > 1:
         regions.update({
             'Gamma_mc': (' +s '.join(['r.Gamma%d' % ii for ii in chs]),
-                        'facet', 'Ym')
+                         'facet', 'Ym')
         })
     else:
         regions.update({'Gamma_mc': ('copy r.Gamma1', 'facet')})
@@ -532,7 +531,7 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
             'requires': ['pis_u', 'corrs_rs'],
             'expression': 'dw_nonsym_elastic.i.Y(mat_he.A, Pi1u, Pi2u)',
             'set_variables': [('Pi1u', ('pis_u', 'corrs_rs'), 'u'),
-                            ('Pi2u', ('pis_u', 'corrs_rs'), 'u')],
+                              ('Pi2u', ('pis_u', 'corrs_rs'), 'u')],
             'class': MyCoefNonSymNonSym,
         },
         'A2': {
@@ -540,7 +539,7 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
             'requires': ['corrs_rs'],
             'expression': 'dw_diffusion.i.Ym(mat_he.KH, Pi1p, Pi2p)',
             'set_variables': [('Pi1p', 'corrs_rs', 'p'),
-                            ('Pi2p', 'corrs_rs', 'p')],
+                              ('Pi2p', 'corrs_rs', 'p')],
             'class': cb.CoefNonSymNonSym,
         },
         'A': {  # effective viscoelastic incremental tensor, eq. (51)
@@ -549,7 +548,7 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
             'class': cb.CoefEval,
         },
         'S': {  # averaged Cauchy stress, eq. (53)
-            'expression': 'ev_volume_integrate_mat.i.Y(mat_he.S, u)',
+            'expression': 'ev_integrate_mat.i.Y(mat_he.S, u)',
             'class': cb.CoefOne,
         },
         'Q1': {
@@ -557,7 +556,7 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
             'requires': ['pis_u', 'corrs_p'],
             'expression': 'dw_nonsym_elastic.i.Y(mat_he.A, Pi1u, Pi2u)',
             'set_variables': [('Pi1u', 'pis_u', 'u'),
-                            ('Pi2u', 'corrs_p', 'u')],
+                              ('Pi2u', 'corrs_p', 'u')],
             'class': cb.CoefNonSym,
         },
         'Q2': {
@@ -565,7 +564,7 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
             'requires': ['pis_u', 'corrs_p'],
             'expression': 'dw_biot.i.Ym(mat_he.BI, Pi1u, Pi1p)',
             'set_variables': [('Pi1p', 'corrs_p', 'p'),
-                            ('Pi1u', 'pis_u', 'u')],
+                              ('Pi1u', 'pis_u', 'u')],
             'class': cb.CoefNonSym,
         },
         'Q': {  # retardation stress, eq. (54)
@@ -612,7 +611,7 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
                 """  - dw_biot.i.Ym(mat_he.BI, u, q)
                 -%e * dw_diffusion.i.Ym(mat_he.KH, q, p)
                 = %e * dw_diffusion.i.Ym(mat_he.KH, q, Pip)
-                + %e * dw_diffusion.i.Ym(mat_he.dK, q, Pip) """ % (dt, dt, dt),  # !!! d3(Pip, q)
+                + %e * dw_diffusion.i.Ym(mat_he.dK, q, Pip) """ % (dt, dt, dt),
             },
             'class': cb.CorrOne,
             'set_variables': [('Pip', 'press_m', 'p')],
@@ -647,8 +646,8 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
 
         epbcs.update({
             'periodic_px' + lab: (['Left', 'Right'],
-                                {'p%s.0' % lab: 'p%s.0' % lab},
-                                'match_x_plane'),
+                                  {'p%s.0' % lab: 'p%s.0' % lab},
+                                  'match_x_plane'),
         })
 
         periodic_all_p = ['periodic_px' + lab, 'periodic_py' + lab]
@@ -656,21 +655,20 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
         if dim == 3:
             epbcs.update({
                 'periodic_py' + lab: (['Near', 'Far'],
-                                    {'p%s.0' % lab: 'p%s.0' % lab},
-                                    'match_y_plane'),
+                                      {'p%s.0' % lab: 'p%s.0' % lab},
+                                      'match_y_plane'),
                 'periodic_pz' + lab: (['Bottom', 'Top'],
-                                    {'p%s.0' % lab: 'p%s.0' % lab},
-                                    'match_z_plane'),
+                                      {'p%s.0' % lab: 'p%s.0' % lab},
+                                      'match_z_plane'),
             })
 
             periodic_all_p += ['periodic_pz' + lab]
         else:
             epbcs.update({
                 'periodic_py' + lab: (['Bottom', 'Top'],
-                                    {'p%s.0' % lab: 'p%s.0' % lab},
-                                    'match_y_plane'),
+                                      {'p%s.0' % lab: 'p%s.0' % lab},
+                                      'match_y_plane'),
             })
-
 
         regions.update({
             Yc: 'cells of group %d' % (ich + 1),
@@ -699,7 +697,7 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
                 'requires': ['pis_u', 'corrs_' + lab],
                 'expression': 'dw_biot.i.Ym(mat_he.BI, Pi1u, Pi1p)',
                 'set_variables': [('Pi1p', 'corrs_' + lab, 'p'),
-                                ('Pi1u', 'pis_u', 'u')],
+                                  ('Pi1u', 'pis_u', 'u')],
                 'class': cb.CoefNonSym,
             },
             'B%s_2' % lab: {
@@ -714,7 +712,7 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
                 'requires': ['pis_u', 'corrs_' + lab],
                 'expression': 'dw_nonsym_elastic.i.Y(mat_he.A, Pi1u, Pi2u)',
                 'set_variables': [('Pi1u', 'pis_u', 'u'),
-                                ('Pi2u', 'corrs_' + lab, 'u')],
+                                  ('Pi2u', 'corrs_' + lab, 'u')],
                 'class': cb.CoefNonSym,
             },
             'B' + lab: {  # The Biot poroelasticity tensor, eq. (52)
@@ -725,11 +723,11 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
             'C' + lab: {  # channel permeability, eq. (55)
                 'requires': ['pis_p' + lab, 'corrs_eta' + lab],
                 'expression': 'dw_diffusion.i.Yc%s(mat_he.KH, Pi1p%s, Pi2p%s)'\
-                            % ((lab,) * 3),
+                              % ((lab,) * 3),
                 'set_variables': [('Pi1p' + lab,
-                                ('pis_p' + lab, 'corrs_eta' + lab), 'p' + lab),
-                                ('Pi2p' + lab,
-                                ('pis_p' + lab, 'corrs_eta' + lab), 'p' + lab)],
+                                  ('pis_p' + lab, 'corrs_eta' + lab), 'p' + lab),
+                                  ('Pi2p' + lab,
+                                  ('pis_p' + lab, 'corrs_eta' + lab), 'p' + lab)],
                 'class': cb.CoefDimDim,
             },
             'Z%s_1' % lab: {
@@ -744,7 +742,7 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
                 'requires': ['corrs_' + lab, 'corrs_p'],
                 'expression': 'dw_biot.i.Ym(mat_he.BI, Pi1u, Pi1p)',
                 'set_variables': [('Pi1u', 'corrs_p', 'u'),
-                                ('Pi1p', 'corrs_' + lab, 'p')],
+                                  ('Pi1p', 'corrs_' + lab, 'p')],
                 'class': cb.CoefOne,
             },
             'Z%s_3' % lab: {
@@ -752,13 +750,13 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
                 'requires': ['corrs_' + lab, 'corrs_p', 'press_m'],
                 'expression': 'dw_diffusion.i.Ym(mat_he.KH, Pi1p, Pi2p)',
                 'set_variables': [('Pi1p', ('corrs_p', 'press_m'), 'p'),
-                                ('Pi2p', 'corrs_' + lab, 'p')],
+                                  ('Pi2p', 'corrs_' + lab, 'p')],
                 'class': cb.CoefOne,
             },
             'Z' + lab: {  # effective discharge, eq. (58)
                 'requires': ['c.Z%s_%d' % (lab, ii + 1) for ii in range(3)],
                 'expression': 'c.Z%s_1/%e + c.Z%s_2/%e + c.Z%s_3'\
-                    % (lab, dt, lab, dt, lab),
+                              % (lab, dt, lab, dt, lab),
                 'class': cb.CoefEval,
             },
             'g%s' % lab: {  # effective discharge, eq. (58)
@@ -766,8 +764,8 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
                 'expression': """dw_diffusion.i.Yc%s(mat_he.KH, Pi1p%s, Pi2p%s)"""\
                             % ((lab,) * 3),
                 'set_variables': [('Pi1p' + lab, ('press_' + lab, 'corrs_p' + lab),
-                                'p' + lab),
-                                ('Pi2p' + lab, 'pis_p' + lab, 'p' + lab)],
+                                   'p' + lab),
+                                  ('Pi2p' + lab, 'pis_p' + lab, 'p' + lab)],
                 'class': cb.CoefDim,
             },
         })
@@ -803,12 +801,12 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
                 'equations': {
                     'eq':
                     """   dw_diffusion.i.Yc%s(mat_he.KH, q%s, p%s)
-                        + dw_volume_dot.i.Yc%s(q%s, ls%s)
+                        + dw_dot.i.Yc%s(q%s, ls%s)
                         =
                         - dw_diffusion.i.Yc%s(mat_he.KH, q%s, Pip%s)"""\
                         % ((lab,) * 9),
                     'eq_imv':
-                        'dw_volume_dot.i.Yc%s(lv%s, p%s) = 0' % ((lab,) * 3),
+                        'dw_dot.i.Yc%s(lv%s, p%s) = 0' % ((lab,) * 3),
                 },
                 'class': cb.CorrDim,
                 'set_variables': [('Pip' + lab, 'pis_p' + lab, 'p' + lab)],
@@ -823,13 +821,13 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
                 'equations': {
                     'eq':
                     """   dw_diffusion.i.Yc%s(mat_he.KH, q%s, p%s)
-                        + dw_volume_dot.i.Yc%s(q%s, ls%s)
+                        + dw_dot.i.Yc%s(q%s, ls%s)
                         =
                         dw_diffusion.i.Yc%s(mat_he.dK, q%s, Pip%s)
                         - dw_diffusion.i.Yc%s(mat_he.H, q%s, Pip%s)"""\
                         % ((lab,) * 12),
                     'eq_imv':
-                        'dw_volume_dot.i.Yc%s(lv%s, p%s) = 0' % ((lab,) * 3),
+                        'dw_dot.i.Yc%s(lv%s, p%s) = 0' % ((lab,) * 3),
 
                 },
                 'class': cb.CorrOne,
@@ -861,7 +859,7 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
                     'requires': ['corrs_' + lab, 'corrs_' + lab2],
                     'expression': 'dw_biot.i.Ym(mat_he.BI, Pi1u, Pi1p)',
                     'set_variables': [('Pi1u', 'corrs_' + lab, 'u'),
-                                    ('Pi1p', 'corrs_' + lab2, 'p')],
+                                      ('Pi1p', 'corrs_' + lab2, 'p')],
                     'class': cb.CoefOne,
                 },
                 'G%s_3' % lab12: {
@@ -869,13 +867,13 @@ def define(eps0=0.01, dt=0.1, nch=2, dim=2,
                     'requires': ['corrs_' + lab, 'corrs_' + lab2],
                     'expression': 'dw_diffusion.i.Ym(mat_he.KH, Pi1p, Pi2p)',
                     'set_variables': [('Pi1p', 'corrs_' + lab, 'p'),
-                                    ('Pi2p', 'corrs_' + lab2, 'p')],
+                                      ('Pi2p', 'corrs_' + lab2, 'p')],
                     'class': cb.CoefOne,
                 },
                 'G%s' % lab12: {  # perfusion coefficient , eq. (57)
                     'requires': ['c.G%s_%d' % (lab12, ii + 1) for ii in range(3)],
                     'expression': 'c.G%s_1/%e + c.G%s_2/%e + c.G%s_3'\
-                        % (lab12, dt, lab12, dt, lab12),
+                                  % (lab12, dt, lab12, dt, lab12),
                     'class': cb.CoefEval,
                 },
             })
